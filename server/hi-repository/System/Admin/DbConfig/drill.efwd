@@ -92,7 +92,7 @@
                                 while (rs.next()) {
                                     JsonObject catalog = new JsonObject();
                                     String resultText = rs.getString("SCHEMA_NAME");
-                                    if (checkDatasourceName(resultText, connectionJson)) {
+                                    if (true) {
                                         if (connectionJson.has("subType") && connectionJson.get("subType").getAsString().contains("nosql.mongo")) {
                                             checkDatabaseForMiddlewareMongo(connectionJson, resultText, dataArray, catalog);
                                         } else {
@@ -102,6 +102,7 @@
                                     }
                                 }
                                 if (dataArray.size() == 0) {
+                                
                                     throw new EfwServiceException("No databases/collections exist.");
                                 }
                             } catch (SQLException e) {
@@ -167,26 +168,16 @@
                 }
 
                 public JsonArray checkDatabaseForMiddlewareMongo(JsonObject connectionJson, String resultText, JsonArray dataArray, JsonObject catalog) {
-                    if (connectionJson.has("databaseName")) {
-                        if (resultText.equals(connectionJson.get("name").getAsString() + "_" + connectionJson.get("id").getAsString() + "." + connectionJson.get("databaseName").getAsString())) {
-                            catalog.addProperty("schemas", resultText);
-                            dataArray.add(catalog);
-                        }
-                    } else {
-                        catalog.addProperty("schemas", resultText);
-                        dataArray.add(catalog);
-                    }
-                    return dataArray;
-                }
+
+    catalog.addProperty("schemas", resultText);
+    dataArray.add(catalog);
+
+    return dataArray;
+}
 
                 public boolean checkDatasourceName(String resultText, JsonObject connectionJson) {
-                    if (connectionJson.has("name")) {
-                        return resultText.contains(connectionJson.get("name").getAsString());
-                    } else if (connectionJson.has("@name")) {
-                        return resultText.contains(connectionJson.get("@name").getAsString());
-                    }
-                    return false;
-                }
+    return true;
+}
 
                 return getDatabaseTables(queryParams.connection);
             ]]>
@@ -352,7 +343,7 @@
                     while (rs.next()) {
                         JsonObject catalog = new JsonObject();
                         catalog.addProperty("catalogs", "${catalog}");
-                        catalog.addProperty("schemas", rs.getString("TABLE_SCHEMA"));
+                        catalog.addProperty("schemas", ${schemas}.replaceAll("`","").trim());
                         catalog.addProperty("tables", rs.getString("TABLE_NAME"));
                         resultArray.add(catalog);
                     }

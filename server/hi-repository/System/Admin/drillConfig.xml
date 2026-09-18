@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <drill managerClass="com.helicalinsight.drill.DrilManager">
-    <enabled>false</enabled>
+    <enabled>true</enabled>
     <storageImpl></storageImpl>
     <enabledTypes mandatory="true">
 
@@ -54,7 +54,7 @@
     </endPointsDetails>
     <extractHeaders>csv,csvh,tsv,psv</extractHeaders>
     <urlConfig>
-        <host></host>
+        <host>drill</host>
         <port>8047</port>
         <dbPort>31010</dbPort>
         <extraParam></extraParam>

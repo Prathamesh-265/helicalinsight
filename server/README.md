@@ -19,17 +19,17 @@ The Helical Insight backend is a Java enterprise application packaged as a WAR (
 
 The server is a Maven multi-module project (version `7.0.0`):
 
-| Module | Purpose |
-|--------|---------|
-| `core` | Framework, security, admin, data source management |
-| `adhoc` | Ad hoc report engine and metadata |
-| `instant` | Instant BI integration |
-| `cache` | Caching layer |
-| `export` | Report export (Chrome headless, PDF, Excel) |
-| `externalauth` | SSO and external authentication |
-| `hwf` | Helical Workflow |
-| `scheduling` | Quartz-based job scheduling |
-| `validation` | Input validation |
+| Module         | Purpose                                            |
+| -------------- | -------------------------------------------------- |
+| `core`         | Framework, security, admin, data source management |
+| `adhoc`        | Ad hoc report engine and metadata                  |
+| `instant`      | Instant BI integration                             |
+| `cache`        | Caching layer                                      |
+| `export`       | Report export (Chrome headless, PDF, Excel)        |
+| `externalauth` | SSO and external authentication                    |
+| `hwf`          | Helical Workflow                                   |
+| `scheduling`   | Quartz-based job scheduling                        |
+| `validation`   | Input validation                                   |
 | `presentation` | WAR assembly — **this is the deployable artifact** |
 
 Runtime dependencies:
@@ -43,12 +43,12 @@ The `hi-repository/` directory holds system configuration, report templates, plu
 
 ## Prerequisites
 
-| Requirement | Notes |
-|-------------|-------|
-| JDK 25 | Set `JAVA_HOME` and ensure `java -version` reports 25+ |
-| Apache Maven 3.8+ | No Maven Wrapper is bundled; install Maven globally |
-| Apache Tomcat 11 | Required to run the built WAR |
-| Google Chrome | Latest stable; chromedriver is managed under `hi-repository/System/Reports/` |
+| Requirement       | Notes                                                                        |
+| ----------------- | ---------------------------------------------------------------------------- |
+| JDK 25            | Set `JAVA_HOME` and ensure `java -version` reports 25+                       |
+| Apache Maven 3.8+ | No Maven Wrapper is bundled; install Maven globally                          |
+| Apache Tomcat 11  | Required to run the built WAR                                                |
+| Google Chrome     | Latest stable; chromedriver is managed under `hi-repository/System/Reports/` |
 
 ## Project setup
 
@@ -82,7 +82,6 @@ No database install required. Derby files are created under `server/db/` on firs
 mvn clean package -DskipTests
 ```
 
-
 ### 3. Configure installation paths
 
 With the `dev` profile (default), `project.properties`, `persistence.xml`, `application-context.xml`, and `quartz.properties` are **Maven-filtered** from `presentation/pom.xml` profile properties (`${dbUrl}`, `${dbDriver}`, etc.). Run `./scripts/setup-dev.sh` to patch `setting.xml` and `globalConnections.xml`, and to normalize any stale hardcoded JDBC values in `persistence.xml` back to Maven placeholders.
@@ -110,22 +109,35 @@ For custom installations, edit:
 
 Profiles are defined in `presentation/pom.xml`:
 
-| Profile | Activation | Database |
-|---------|------------|----------|
-| `dev` | **Default** | Embedded Derby (`server/db/`) |
-| `production` | `-Denv=production` | Derby |
-| `docker` | `-Denv=docker` | PostgreSQL (container hostname `postgres`) |
+| Profile      | Activation         | Database                                   |
+| ------------ | ------------------ | ------------------------------------------ |
+| `dev`        | **Default**        | Embedded Derby (`server/db/`)              |
+| `production` | `-Denv=production` | Derby                                      |
+| `docker`     | `-Denv=docker`     | PostgreSQL (container hostname `postgres`) |
 
 ### Default application users
 
 On first startup against an empty database, the application creates:
 
-| Username | Password | Role |
-|----------|----------|------|
+| Username  | Password  | Role          |
+| --------- | --------- | ------------- |
 | `hiadmin` | `hiadmin` | Administrator |
-| `hiuser` | `hiuser` | Standard user |
+| `hiuser`  | `hiuser`  | Standard user |
 
 Change these immediately outside of local development.
+
+### MongoDB datasource
+
+MongoDB is exposed through the existing Drill-backed NoSQL datasource flow. Enable the Drill middleware in the application configuration, then open the datasource page and select **Mongodb**. The form accepts:
+
+- host and port in the generated MongoDB URL
+- database name
+- optional collection name
+- optional username, password, authentication mechanism, and SSL options
+
+Use **Test connection** before saving. Helical Insight validates the MongoDB URL and database, authenticates when credentials are supplied, and issues a MongoDB `ping` command. The datasource is then available through the normal metadata and report workflow. Invalid hosts, ports, credentials, or database names are reported as connection failures and do not replace existing Derby or SQL datasource support.
+
+The MongoDB Java driver is supplied by the server Maven build. The server-side implementation is `MongoDrillLoader`, registered as `com.helicalinsight.nosql.mongo`; the UI definition is generated by `System/Admin/Static/DataSourcesList.groovy` when Drill is enabled.
 
 ## Eclipse + Tomcat (recommended)
 
@@ -133,29 +145,29 @@ Change these immediately outside of local development.
 
 ### What you need
 
-| Item | Notes |
-|------|-------|
-| [Eclipse IDE for Enterprise Java and Web Developers](https://www.eclipse.org/downloads/) | Includes WTP / server tools |
-| JDK 25 | Set as the workspace / project JRE |
-| Apache Tomcat 11.x | Install on disk; register it in Eclipse (Servers view) |
-| Maven | Eclipse m2e (bundled) or a system Maven install |
+| Item                                                                                     | Notes                                                  |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [Eclipse IDE for Enterprise Java and Web Developers](https://www.eclipse.org/downloads/) | Includes WTP / server tools                            |
+| JDK 25                                                                                   | Set as the workspace / project JRE                     |
+| Apache Tomcat 11.x                                                                       | Install on disk; register it in Eclipse (Servers view) |
+| Maven                                                                                    | Eclipse m2e (bundled) or a system Maven install        |
 
 Run repo `scripts/setup-dev` first so `hi-repository` paths are correct on your machine.
 
 ### One-time Eclipse setup
 
-1. **Import the Maven project** — *File → Import → Existing Maven Projects* → select the `server/` directory (multi-module root).
-2. **Add Tomcat** — *Window → Show View → Servers* → *New → Server* → Apache Tomcat **v11** → point at your Tomcat install.
+1. **Import the Maven project** — _File → Import → Existing Maven Projects_ → select the `server/` directory (multi-module root).
+2. **Add Tomcat** — _Window → Show View → Servers_ → _New → Server_ → Apache Tomcat **v11** → point at your Tomcat install.
 3. **Deploy the WAR module** — add the **`presentation`** module (context path **`/hi-ee`**) to that Tomcat server. The deployable artifact must be named / mapped as **`hi-ee`** so URLs match the frontend (`/hi-ee/`).
 4. **JDK** — ensure the Tomcat runtime and the Maven projects use JDK 25.
-5. **Start** the server from Eclipse (*Run* / *Debug*).
+5. **Start** the server from Eclipse (_Run_ / _Debug_).
 
 Verify: [http://localhost:8080/hi-ee/](http://localhost:8080/hi-ee/)
 
 ### Day-to-day tips
 
 - Prefer **Debug** on the Tomcat server for breakpoints in `core`, `adhoc`, `presentation`, etc.
-- After `pom.xml` or dependency changes, update the Maven project (*Right-click → Maven → Update Project*) and republish if Eclipse does not hot-reload.
+- After `pom.xml` or dependency changes, update the Maven project (_Right-click → Maven → Update Project_) and republish if Eclipse does not hot-reload.
 - Keep using Maven for CI-style builds: `mvn clean package -DskipTests` from `server/` when you need a standalone WAR.
 
 IntelliJ IDEA and other IDEs work, but Eclipse + Tomcat is the path we recommend so contributors spend less time on deploy plumbing.
@@ -196,9 +208,11 @@ You do not edit JDBC URLs there by hand.
 **1. Prepare filesystem + SampleTravelData (once per machine / CI job)**
 
 # Local: uses server/db and the default "dev" Maven profile
+
 ./scripts/setup-test-env.sh
 
 # CI / matching hardcoded /home/helical/Performance paths in older tests
+
 ./scripts/setup-ci-test-env.sh
 
 The setup script:
@@ -218,8 +232,6 @@ mvn test
 
 ```
 
-
-
 # Single module
 
 ```bash
@@ -228,14 +240,14 @@ mvn test -pl presentation
 # CI layout (filters test resources to /home/helical/Performance/hi/db)
 mvn test -Denv=ci
 ```
-| Profile | Activation | App DB | Quartz DB | SampleTravelData |
-|---------|------------|--------|-----------|------------------|
-| `dev` (default) | none | `server/db/hiee` | `server/db/hischeduledata` | `server/db/SampleTravelData` (via setup) |
-| `ci` | `-Denv=ci` | `/home/helical/Performance/hi/db/hiee` | `.../hischeduledata` | `.../SampleTravelData` (via setup-ci) |
-| `docker` | `-Denv=docker` | PostgreSQL `postgres:5432/hiee` | `hischeduledata` | N/A (image build) |
+
+| Profile         | Activation     | App DB                                 | Quartz DB                  | SampleTravelData                         |
+| --------------- | -------------- | -------------------------------------- | -------------------------- | ---------------------------------------- |
+| `dev` (default) | none           | `server/db/hiee`                       | `server/db/hischeduledata` | `server/db/SampleTravelData` (via setup) |
+| `ci`            | `-Denv=ci`     | `/home/helical/Performance/hi/db/hiee` | `.../hischeduledata`       | `.../SampleTravelData` (via setup-ci)    |
+| `docker`        | `-Denv=docker` | PostgreSQL `postgres:5432/hiee`        | `hischeduledata`           | N/A (image build)                        |
 
 > GitHub Actions runs `scripts/setup-ci-test-env.sh` then `mvn test -Denv=ci`.
-
 
 ## Building the WAR
 
@@ -278,13 +290,13 @@ Deploy to Apache Tomcat when running the backend directly on a host (without Doc
 
 After Tomcat expands the WAR, you may need to adjust filtered config inside the exploded webapp:
 
-| File | Path under Tomcat |
-|------|-------------------|
-| `application-context.xml` | `webapps/hi-ee/WEB-INF/classes/application-context.xml` |
-| `persistence.xml` | `webapps/hi-ee/WEB-INF/classes/META-INF/persistence.xml` |
-| `project.properties` | `webapps/hi-ee/WEB-INF/classes/project.properties` |
-| `quartz.properties` | `webapps/hi-ee/WEB-INF/classes/quartz.properties` |
-| `log4j2.properties` | `webapps/hi-ee/WEB-INF/classes/log4j2.properties` |
+| File                      | Path under Tomcat                                        |
+| ------------------------- | -------------------------------------------------------- |
+| `application-context.xml` | `webapps/hi-ee/WEB-INF/classes/application-context.xml`  |
+| `persistence.xml`         | `webapps/hi-ee/WEB-INF/classes/META-INF/persistence.xml` |
+| `project.properties`      | `webapps/hi-ee/WEB-INF/classes/project.properties`       |
+| `quartz.properties`       | `webapps/hi-ee/WEB-INF/classes/quartz.properties`        |
+| `log4j2.properties`       | `webapps/hi-ee/WEB-INF/classes/log4j2.properties`        |
 
 Confirm JDBC URLs, Hibernate dialect, log file paths, and repository paths match your environment. Restart Tomcat after changes.
 
@@ -356,12 +368,12 @@ Access: `http://localhost:8080/hi-ee/`
 
 ### Image environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST_IP` | `localhost` | Host IP used to set `<BaseUrl>` in `setting.xml` at startup |
-| `INSTALL_CHROME` | `true` | Download and configure Chrome for export features |
-| `CATALINA_HOME` | `/usr/local/tomcat` | Tomcat installation path |
-| `INSTALLATION_LOCATION` | `/usr/local/Helical Insight` | Application data root |
+| Variable                | Default                      | Description                                                 |
+| ----------------------- | ---------------------------- | ----------------------------------------------------------- |
+| `HOST_IP`               | `localhost`                  | Host IP used to set `<BaseUrl>` in `setting.xml` at startup |
+| `INSTALL_CHROME`        | `true`                       | Download and configure Chrome for export features           |
+| `CATALINA_HOME`         | `/usr/local/tomcat`          | Tomcat installation path                                    |
+| `INSTALLATION_LOCATION` | `/usr/local/Helical Insight` | Application data root                                       |
 
 ### Run backend and frontend together
 
@@ -413,14 +425,14 @@ Create a second database (`hischeduledata`) for Quartz if using the JDBC job sto
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| 404 on `/hi-ee` | WAR not deployed or Tomcat not started | Check `$CATALINA_HOME/webapps/` and Tomcat logs |
-| Database connection errors | Wrong JDBC URL or DB not running | Verify `application-context.xml` / Maven profile DB settings |
-| Export/PDF fails | Chrome not installed | Install Chrome and the matching chromedriver; in Docker set `INSTALL_CHROME=true` |
-| Wrong redirect URL | `BaseUrl` mismatch | Update `hi-repository/System/Admin/setting.xml` or set `HOST_IP` when using Docker |
-| Container cannot reach database | Wrong JDBC hostname | Use `-Denv=docker` and hostname `postgres` on a shared Docker network |
-| Out of memory during Maven build | Insufficient heap | `export MAVEN_OPTS="-Xmx2g"` |
+| Symptom                          | Likely cause                           | Fix                                                                                |
+| -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
+| 404 on `/hi-ee`                  | WAR not deployed or Tomcat not started | Check `$CATALINA_HOME/webapps/` and Tomcat logs                                    |
+| Database connection errors       | Wrong JDBC URL or DB not running       | Verify `application-context.xml` / Maven profile DB settings                       |
+| Export/PDF fails                 | Chrome not installed                   | Install Chrome and the matching chromedriver; in Docker set `INSTALL_CHROME=true`  |
+| Wrong redirect URL               | `BaseUrl` mismatch                     | Update `hi-repository/System/Admin/setting.xml` or set `HOST_IP` when using Docker |
+| Container cannot reach database  | Wrong JDBC hostname                    | Use `-Denv=docker` and hostname `postgres` on a shared Docker network              |
+| Out of memory during Maven build | Insufficient heap                      | `export MAVEN_OPTS="-Xmx2g"`                                                       |
 
 ### Log locations
 

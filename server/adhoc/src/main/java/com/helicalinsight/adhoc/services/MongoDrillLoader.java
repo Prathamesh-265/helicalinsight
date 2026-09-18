@@ -15,10 +15,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * @author Somen
- * Created on 11/15/2017.
+ *         Created on 11/15/2017.
  */
 
 @Component("com.helicalinsight.nosql.mongo")
@@ -42,7 +41,8 @@ public class MongoDrillLoader extends NoSQLLoader {
 
             connectionString = "mongodb://" + host + ":" + port;
         } else {
-            connectionString = "mongodb://" + username + ":" + password + "@" + host + ":" + port + "/?authMechanism=SCRAM-SHA-1";
+            connectionString = "mongodb://" + username + ":" + password + "@" + host + ":" + port
+                    + "/?authMechanism=SCRAM-SHA-1";
         }
         mongo.addProperty("connection", connectionString);
         mongo.addProperty("enabled", true);
@@ -60,7 +60,7 @@ public class MongoDrillLoader extends NoSQLLoader {
             throw new EfwServiceException("There was some problem creating drill mongo connection");
         } else {
             try {
-                JsonObject resultJSON = new Gson().fromJson(result,JsonObject.class);
+                JsonObject resultJSON = new Gson().fromJson(result, JsonObject.class);
 
             } catch (JsonSyntaxException e) {
                 throw new EfwServiceException("There was a problem " + result);
@@ -83,12 +83,15 @@ public class MongoDrillLoader extends NoSQLLoader {
     @Override
     public boolean testConnection(JsonObject formData) {
         String host = GsonUtility.optString(formData, "host");
-        String uri = GsonUtility.optString(formData,"jdbcUrl");
-        String database = GsonUtility.optString(formData,"database");
-        String username = GsonUtility.optString(formData,"userName");
-        String password = GsonUtility.optString(formData,"password");
+        String uri = GsonUtility.optString(formData, "jdbcUrl");
+        String database = GsonUtility.optString(formData, "database");
+        String username = GsonUtility.optString(formData, "userName");
+        String password = GsonUtility.optString(formData, "password");
         if (StringUtils.isEmpty(database)) {
-            database = GsonUtility.optString(formData,"databaseName");
+            database = GsonUtility.optString(formData, "databaseName");
+        }
+        if (StringUtils.isBlank(uri) || StringUtils.isBlank(database)) {
+            throw new IllegalArgumentException("MongoDB URL and database are required");
         }
         MongoModel mongoModel = new MongoModel();
         String splitArray[] = uri.split(":");
@@ -101,13 +104,16 @@ public class MongoDrillLoader extends NoSQLLoader {
 
         int timeout = GsonUtility.optInt(formData, "timeOut");
         int maxWait = GsonUtility.optInt(formData, "maxWait");
-        String authMechanism = GsonUtility.optString(formData,"authMechanism");
+        String authMechanism = GsonUtility.optString(formData, "authMechanism");
         mongoModel.setDatabase(database);
         mongoModel.setUsername(username);
         mongoModel.setPassword(password);
         mongoModel.setAuthMechanism(authMechanism);
         mongoModel.setTimeout(timeout);
         mongoModel.setMaxWait(maxWait);
+        mongoModel.setSsl(GsonUtility.optString(formData, "ssl"));
+        mongoModel.setKeyStorePath(GsonUtility.optString(formData, "keyStorePath"));
+        mongoModel.setKeyStorePassword(GsonUtility.optString(formData, "keyStorePassword"));
         return mongoModel.testConnection();
     }
 }
@@ -211,7 +217,6 @@ class MongoModel {
         this.keyStorePassword = keyStorePassword;
     }
 
-
     private String ssl;
     private String keyStorePath;
     private String keyStorePassword;
@@ -221,17 +226,31 @@ class MongoModel {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         MongoClient mongo = null;
         try {
-            if ((username == null) || (password == null) || (authMechanism == null)) {
+            if (StringUtils.isBlank(database)) {
+                throw new IllegalArgumentException("MongoDB database is required");
+            }
+            if (database.length() > 64 || database.indexOf('\\') >= 0 || database.indexOf('/') >= 0
+                    || database.indexOf('.') >= 0 || database.indexOf('"') >= 0 || database.indexOf('$') >= 0) {
+                throw new IllegalArgumentException("MongoDB database name is invalid");
+            }
+            if (StringUtils.isBlank(username) && StringUtils.isBlank(password)) {
                 mongo = new MongoClient(host);
                 this.mongoDb = mongo.getDB(database);
+                this.mongoDb.command(new BasicDBObject("ping", 1));
+                return true;
             } else {
                 List<ServerAddress> seeds = new ArrayList<>();
                 seeds.add(new ServerAddress(host));
-                if (authMechanism.equalsIgnoreCase("MongoCR")) {
-                    credentials.add(MongoCredential.createMongoCRCredential(username, database, password.toCharArray()));
-                } else if (authMechanism.equalsIgnoreCase("ScramSha1")) {
-                    credentials.add(MongoCredential.createScramSha1Credential(username, database, password.toCharArray()));
-                } else if (authMechanism.equalsIgnoreCase("Plain")) {
+                if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+                    throw new IllegalArgumentException("MongoDB username and password must both be provided");
+                }
+                if ("MongoCR".equalsIgnoreCase(authMechanism)) {
+                    credentials
+                            .add(MongoCredential.createMongoCRCredential(username, database, password.toCharArray()));
+                } else if ("ScramSha1".equalsIgnoreCase(authMechanism)) {
+                    credentials
+                            .add(MongoCredential.createScramSha1Credential(username, database, password.toCharArray()));
+                } else if ("Plain".equalsIgnoreCase(authMechanism)) {
                     credentials.add(MongoCredential.createPlainCredential(username, database, password.toCharArray()));
                 } else {
                     credentials.add(MongoCredential.createCredential(username, database, password.toCharArray()));
@@ -249,19 +268,14 @@ class MongoModel {
                 }
                 builder.socketKeepAlive(true);
                 MongoClientOptions mongoClientOptions = builder.build();
-                if (uri != null && uri.length() > 0) {
-                    MongoClientURI mongoURI = new MongoClientURI(uri);
-                    mongo = new MongoClient(mongoURI);
-                } else {
-                    mongo = new MongoClient(seeds, credentials, mongoClientOptions);
-                }
+                mongo = new MongoClient(seeds, credentials, mongoClientOptions);
                 if (database.isEmpty()) {
                     database = uri.substring(uri.lastIndexOf("/"));
                 }
                 this.mongoDb = mongo.getDB(database);
 
-                mongo.getAddress();
-                return this.mongoDb != null;
+                this.mongoDb.command(new BasicDBObject("ping", 1));
+                return true;
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -271,7 +285,6 @@ class MongoModel {
                 mongo.close();
             }
         }
-        return false;
     }
 
     private boolean notNullOrBlank(String trustStorePassword) {
@@ -281,4 +294,3 @@ class MongoModel {
     DB mongoDb;
 
 }
-

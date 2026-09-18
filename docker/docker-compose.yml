@@ -14,6 +14,17 @@
 # Git checkout: run scripts/setup-dev so that mount path exists.
 
 services:
+  drill:
+    image: apache/drill:1.17.0
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - "8047:8047"
+      - "31010:31010"
+    networks:
+      - hinet
+
   postgres:
     image: postgres:15.8-alpine3.20
     restart: unless-stopped
@@ -22,7 +33,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiuser}
       POSTGRES_DB: ${POSTGRES_DB:-hiee}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -36,6 +51,8 @@ services:
     image: hiee/helicalinsight:nitrogen-j25t11
     restart: unless-stopped
     depends_on:
+      drill:
+        condition: service_started
       postgres:
         condition: service_healthy
     environment:
@@ -43,7 +60,11 @@ services:
       INSTALL_CHROME: ${INSTALL_CHROME:-true}
       CATALINA_OPTS: "-Djdk.internal.httpclient.disableHostnameVerification=true"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/hi-ee/applicationSettings || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/hi-ee/applicationSettings || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -51,7 +72,7 @@ services:
     volumes:
       - ./hi/db:/usr/local/Helical Insight/hi/db
       - ./hi/hi-repository:/usr/local/Helical Insight/hi/hi-repository
-      - ./hi/hi-ee:/usr/local/tomcat/webapps/hi-ee
+      #- ./hi/hi-ee:/usr/local/tomcat/webapps/hi-ee
       - ./hi/hi-ee.war:/usr/local/tomcat/webapps/hi-ee.war
       - hirepo:/root
       - ./config/tomcat/conf:/usr/local/tomcat/conf
@@ -73,7 +94,11 @@ services:
     depends_on:
       - hiee
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://127.0.0.1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-check-certificate -q -O /dev/null https://127.0.0.1 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -89,7 +114,11 @@ services:
     image: python:3.13-slim
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/'')"',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
