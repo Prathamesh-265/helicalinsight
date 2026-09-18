@@ -1,3 +1,177 @@
+---
+
+# MongoDB Database Connectivity Implementation
+
+## A. Overview
+
+### What was implemented
+
+MongoDB database connectivity was implemented in Helical Insight by integrating MongoDB through Apache Drill. This enables users to create MongoDB datasources, discover databases and collections, retrieve metadata, and execute queries within Helical Insight.
+
+### Why the changes were required
+
+The existing application did not support MongoDB as a datasource. This implementation extends the platform to work with MongoDB while maintaining compatibility with the existing metadata framework.
+
+### Integration Approach
+
+MongoDB is integrated using Apache Drill's Mongo Storage Plugin. Helical Insight communicates with Apache Drill, which acts as the query engine for accessing MongoDB databases and collections.
+
+---
+
+## B. Environment Setup
+
+### Prerequisites
+
+- Java (supported version)
+- Docker & Docker Compose
+- Apache Drill 1.17
+- MongoDB 7
+- Helical Insight source code
+- Git
+
+### Start the Application
+
+```bash
+docker compose up -d
+```
+
+Verify all required containers are running before configuring MongoDB.
+
+---
+
+## C. MongoDB Setup
+
+Start MongoDB:
+
+```bash
+docker start helical-mongo
+```
+
+Connect to MongoDB:
+
+```bash
+mongosh
+```
+
+Create a sample database and collection:
+
+```javascript
+use testdb
+
+db.sales.insertOne({
+    name: "Alice",
+    amount: 100
+})
+```
+
+Verify:
+
+```javascript
+show dbs
+use testdb
+show collections
+db.sales.find()
+```
+
+---
+
+## D. Application Configuration
+
+1. Start Apache Drill.
+2. Enable the Mongo Storage Plugin.
+3. Configure the Mongo connection:
+
+```json
+{
+  "type": "mongo",
+  "connection": "mongodb://helical-mongo:27017/",
+  "enabled": true
+}
+```
+
+4. Restart Apache Drill.
+5. Restart Helical Insight.
+6. Create a MongoDB datasource from the Helical Insight Administration page.
+
+---
+
+## E. Testing
+
+### Tested Components
+
+- MongoDB connectivity
+- Apache Drill Mongo plugin
+- Metadata retrieval
+- Database discovery
+- Collection discovery
+- Query execution
+
+### Verification
+
+The implementation was verified by:
+
+- Successfully connecting to MongoDB.
+- Discovering the `testdb` database.
+- Discovering the `sales` collection.
+- Executing metadata queries through Apache Drill.
+- Verifying MongoDB datasource creation.
+
+### Test Data
+
+Database:
+
+```
+testdb
+```
+
+Collection:
+
+```
+sales
+```
+
+Sample document:
+
+```json
+{
+  "name": "Alice",
+  "amount": 100
+}
+```
+
+### Edge Cases Tested
+
+- Empty database handling
+- MongoDB connection validation
+- Metadata retrieval after configuration changes
+- Apache Drill integration
+
+---
+
+## F. Changes Made
+
+Major changes include:
+
+- Implemented MongoDB datasource support.
+- Added MongoDB integration through Apache Drill.
+- Updated metadata retrieval logic.
+- Modified MongoDB datasource configuration.
+- Updated Drill metadata configuration.
+- Updated application configuration files.
+- Added implementation documentation.
+
+---
+
+## Deliverables
+
+- Updated source code
+- MongoDB database connectivity implementation
+- Required configuration updates
+- README documentation
+- MongoDB setup instructions
+- Testing details and verification
+
+
 # Helical Insight
 
 A Unified Open Source Enterprise Ready Embedded BI with AI Capabilities ~ providing all enterprise features in the open source free version.  
